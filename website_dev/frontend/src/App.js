@@ -4,8 +4,15 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   const [message, setMessage] = useState('');
+  const [players, setPlayers] = useState([]);
 
-
+  // Fetch players when component mounts
+  useEffect(() => {
+    axios.get('http://localhost:5000/getPlayers')
+      .then(response => {
+        setPlayers(response.data);
+      });
+  }, []);
 
   return (
     <div className="App">
@@ -53,7 +60,9 @@ function App() {
           <main className="col-md-9 ml-sm-auto col-lg-10 px-md-4">
             <h2>Dashboard</h2>
             <p>{message}</p>
-            <iframe src="http://127.0.0.1:5000/dash/" title="Dash App" width="100%" height="600"></iframe>
+
+
+            <iframe src="http://localhost:5000/dash/" title="Dash App" width="100%" height="600"></iframe>
           </main>
         </div>
       </div>
