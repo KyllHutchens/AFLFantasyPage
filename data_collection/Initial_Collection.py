@@ -4,9 +4,12 @@ import pandas as pd
 import psycopg2
 import os
 from dotenv import load_dotenv
+import csv
 
 load_dotenv()
 
+"""
+#Live games are avaliable at https://www.footywire.com/afl/footy/live_stats?mid={match_id}
 connection = psycopg2.connect(
     host=os.getenv("DB_HOST"),
     port=os.getenv("DB_PORT"),
@@ -15,7 +18,7 @@ connection = psycopg2.connect(
     password=os.getenv("DB_PASSWORD")
 )
 
-query = "SELECT * FROM fixture WHERE fixture_id BETWEEN 2 AND 23;"
+query = "SELECT * FROM fixture;"
 match_ids_df = pd.read_sql(query, connection)
 connection.close()
 
@@ -61,6 +64,13 @@ final_df.columns = ['playerid', 'Player', 'K', 'HB', 'D', 'M', 'G', 'B', 'T', 'H
 
 final_df.to_csv('temp.csv', index=False)
 
+with open(csv_file_path, 'r', newline='') as csv_file:
+    csv_reader = csv.reader(csv_file)
+    for row in csv_reader:
+        # Check if the kicks column has "unused substitute"
+        if row[2] == "unused substitute":
+            row[2] = ""  # or row[2] = "0" if you want it to be zero
+        updated_rows.append(row)"""
 # Connect to the database again
 connection = psycopg2.connect(
     host=os.getenv("DB_HOST"),
@@ -71,9 +81,24 @@ connection = psycopg2.connect(
 )
 
 cursor = connection.cursor()
-with open('temp.csv', 'r') as f:
-    f.readline()  # skip the header
-    cursor.copy_from(f, 'playerstats', sep=',', null="")
+updated_rows = []
+with open('temp.csv', 'r', newline='') as f:
+    csv_reader = csv.reader(f)
+    next(csv_reader)  # skip the header
+    for row in csv_reader:
+        # Check if the kicks column has "unused substitute"
+        if row[2] == "Unused Substitute":
+            row[2] = ""
+        updated_rows.append(row)
+
+# Convert updated rows to a format suitable for copy_from
+from io import StringIO
+buffer = StringIO()
+for row in updated_rows:
+    buffer.write(','.join(row) + '\n')
+buffer.seek(0)
+
+cursor.copy_from(buffer, 'playerstats', sep=',', null="")
 
 connection.commit()
 cursor.close()
